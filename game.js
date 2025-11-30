@@ -2,6 +2,10 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Make canvas full screen
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 // ---------------- Load Images ----------------
 const birdImg = new Image();
 birdImg.src = "bird.png";
@@ -18,20 +22,21 @@ const scoreSound = new Audio("score.wav");
 const bgMusic = new Audio("background.mp3");
 const gameOverSound = new Audio("gameover.wav");
 
-// Audio Settings
+// Audio settings
 bgMusic.loop = true;
 bgMusic.volume = 0.3;
 
 // ---------------- Game Variables ----------------
-let birdX = 80;
-let birdY = 250;
+let birdX = canvas.width * 0.15;
+let birdY = canvas.height / 2;
 let birdVelocity = 0;
+
 let gravity = 0.22;
 let flapStrength = -5.8;
 
 let pipes = [];
 let pipeWidth = 60;
-let pipeGap = 150;
+let pipeGap = canvas.height * 0.25; // proportional gap
 let pipeSpeed = 2;
 let frameCount = 0;
 
@@ -42,6 +47,7 @@ let musicStarted = false;
 // ---------------- Player Input ----------------
 document.addEventListener("keydown", flap);
 canvas.addEventListener("click", flap);
+canvas.addEventListener("touchstart", flap); // mobile touch support
 
 function flap() {
     if (!musicStarted) {
@@ -59,14 +65,14 @@ function flap() {
 
 // ---------------- Spawn Pipes ----------------
 function spawnPipe() {
-    let topHeight = Math.random() * 250 + 80;
+    let topHeight = Math.random() * (canvas.height * 0.6) + canvas.height * 0.1;
     let bottomY = topHeight + pipeGap;
     pipes.push({ x: canvas.width, topHeight, bottomY, passed: false });
 }
 
 // ---------------- Restart Game ----------------
 function restartGame() {
-    birdY = 250;
+    birdY = canvas.height / 2;
     birdVelocity = 0;
     pipes = [];
     frameCount = 0;
@@ -87,15 +93,19 @@ function update() {
     frameCount++;
     if (frameCount % 110 === 0) spawnPipe();
 
+    // Bird physics
     birdVelocity += gravity;
     birdY += birdVelocity;
 
+    // Collision with ceiling/floor
     if (birdY > canvas.height - 15 || birdY < 0) {
         endGame();
     }
 
+    // Move pipes
     pipes.forEach(pipe => pipe.x -= pipeSpeed);
 
+    // Collision and scoring
     pipes.forEach(pipe => {
         if (
             birdX + 15 > pipe.x &&
@@ -112,6 +122,7 @@ function update() {
         }
     });
 
+    // Remove offscreen pipes
     pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
 }
 
@@ -127,8 +138,10 @@ function endGame() {
 
 // ---------------- Draw Everything ----------------
 function draw() {
+    // Background
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
+    // Pipes
     pipes.forEach(pipe => {
         // Top pipe flipped
         ctx.save();
@@ -141,32 +154,47 @@ function draw() {
         ctx.drawImage(pipeImg, pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
     });
 
+    // Bird
     ctx.drawImage(birdImg, birdX - 15, birdY - 15, 30, 30);
 
-    // Score at top
+    // Score
     ctx.fillStyle = "white";
     ctx.font = "32px Arial Black";
     ctx.textAlign = "center";
     ctx.fillText(score, canvas.width / 2, 50);
 
-    // Game Over Screen
+    // Game Over
     if (gameOver) {
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = "gold";
         ctx.font = "50px 'Times New Roman'";
-        ctx.textAlign = "center";
-        ctx.fillText("GAME OVER", canvas.width / 2, 250);
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
 
         ctx.fillStyle = "white";
         ctx.font = "28px 'Times New Roman'";
-        ctx.fillText(`Score: ${score}`, canvas.width / 2, 320);
+        ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
 
         ctx.font = "20px Arial";
-        ctx.fillText("Tap or Press Any Key to Restart", canvas.width / 2, 360);
+        ctx.fillText("Tap or Press Any Key to Restart", canvas.width / 2, canvas.height / 2 + 50);
     }
 }
+
+// ---------------- Wait for all images to load ----------------
+let imagesLoaded = 0;
+const totalImages = 3;
+
+function imageLoaded() {
+    imagesLoaded++;
+    if (imagesLoaded === totalImages) {
+        loop(); // start game loop after all images are ready
+    }
+}
+
+birdImg.onload = imageLoaded;
+pipeImg.onload = imageLoaded;
+bgImg.onload = imageLoaded;
 
 // ---------------- Game Loop ----------------
 function loop() {
@@ -174,5 +202,3 @@ function loop() {
     draw();
     requestAnimationFrame(loop);
 }
-
-loop();
