@@ -31,8 +31,9 @@ let birdX = canvas.width * 0.15;
 let birdY = canvas.height / 2;
 let birdVelocity = 0;
 
-let gravity = 0.22;
-let flapStrength = -5.8;
+// Smooth controls
+let gravity = 0.2;
+let flapStrength = -5;
 
 let pipes = [];
 let pipeWidth = 60;
@@ -47,16 +48,16 @@ let musicStarted = false;
 // ---------------- Player Input ----------------
 document.addEventListener("keydown", flap);
 canvas.addEventListener("click", flap);
-canvas.addEventListener("touchstart", flap); // mobile touch support
+canvas.addEventListener("touchstart", flap);
 
 function flap() {
     if (!musicStarted) {
         bgMusic.play().catch(() => {});
         musicStarted = true;
     }
+
     if (!gameOver) {
-        birdVelocity = flapStrength;
-        birdVelocity -= 1.2;
+        birdVelocity = flapStrength; // single smooth flap
         flapSound.play();
     } else {
         restartGame();
@@ -93,7 +94,6 @@ function update() {
     frameCount++;
     if (frameCount % 110 === 0) spawnPipe();
 
-    // Bird physics
     birdVelocity += gravity;
     birdY += birdVelocity;
 
@@ -170,6 +170,7 @@ function draw() {
 
         ctx.fillStyle = "gold";
         ctx.font = "50px 'Times New Roman'";
+        ctx.textAlign = "center";
         ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
 
         ctx.fillStyle = "white";
